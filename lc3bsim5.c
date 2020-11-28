@@ -162,24 +162,18 @@ int GetGATE_PCMINUS2(int *x) { return(x[GATE_PCMINUS2]);}
 int GetREGMUX(int *x)        { return(x[REGMUX]);}      
 int GetPSRMUX(int *x)        { return(x[PSRMUX]);}
 int GetVECMUX(int *x)        { return((x[VECMUX1] << 1) + x[VECMUX0]); }
-// new loads lab 5
+// New CS from Lab 5
 int GetLD_VA(int *x)         { return(x[LD_VA]);}
 int GetLD_RET(int *x)        { return(x[LD_RET]);}
 int GetLD_RW(int *x)         { return(x[LD_RW]);}
 int GetLD_SAVEMDR(int *x)    { return(x[LD_SAVEMDR]);}
-// new gates lab 5.. Gate VA unused :(
 int GetGATE_PTBR(int *x)     { return(x[GATE_PTBR]);}
-// new muxes
 int GetRETMUX(int *x)        { return((x[RETMUX3] << 3) + (x[RETMUX2] << 2) +(x[RETMUX1] << 1) + x[RETMUX0]);}
 int GetVAMUX(int *x)         { return(x[VAMUX]);}
 int GetRWMUX(int *x)         { return(x[RWMUX]);}
 int GetVARETMUX(int *x)      { return(x[VARETMUX]);}
 int GetMDRMUX(int *x)        { return((x[MDRMUX1] << 1) + x[MDRMUX0]); }
 int GetEXCMUX(int *x)        { return(x[EXCMUX]);}
-
-//tasks
-// VAMUX
-// update exception checking
 
 /***************************************************************/
 /* The control store rom.                                      */
@@ -241,7 +235,6 @@ int EXC;
 int INTERRUPT;
 int PSR; 
 int USP;
-/* MODIFY: you should add here any other registers you need to implement interrupts and exceptions */
 
 /* For lab 5 */
 int PTBR; /* This is initialized when we load the page table */
@@ -249,7 +242,6 @@ int VA;   /* Temporary VA register */
 int RET;
 int RW;
 int SAVEMDR;
-/* MODIFY: you should add here any other registers you need to implement virtual memory */
 
 } System_Latches;
 
@@ -652,8 +644,11 @@ void initialize(char *argv[], int num_prog_files) {
     CURRENT_LATCHES.VECTOR = 0;
     CURRENT_LATCHES.INTERRUPT = 0;
     CURRENT_LATCHES.EXC = 0;
-
-/* MODIFY: you can add more initialization code HERE */
+    CURRENT_LATCHES.PTBR = 0x1000;
+    CURRENT_LATCHES.VA = 0;
+    CURRENT_LATCHES.RET = 0;
+    CURRENT_LATCHES.RW = 0;
+    CURRENT_LATCHES.SAVEMDR = 0;
 
     NEXT_LATCHES = CURRENT_LATCHES;
 
@@ -1272,31 +1267,32 @@ void latch_datapath_values() {
    }
    if(ldexcv == 1){
         int excmux = GetEXCMUX(CURRENT_LATCHES.MICROINSTRUCTION);
-
+        NEXT_LATCHES.EXCV = Low16bits(0);
         switch(excmux){
             case 0:
-                // ignore if STB/LDB
                 // checking for unaligned accesses
+                if(BUS & 0x01 != 0){
+                    // vector 3
+                    NEXT_LATCHES.EXCV = Low16bits(3);
+                } 
                 break;
             case 1:
-                // checking for page fault / protected
-                // protection gets priority
+                // checking for page fault
+                if((CURRENT_LATCHES.MDR & 0x0004) == 0){
+                    NEXT_LATCHES.EXCV = Low16bits(2);
+                }
+                // checking for protection.. gets priority
+                    // in user mode
+                if( ((CURRENT_LATCHES.PSR & 0x08000) != 0) && 
+                    // protected page
+                    ((CURRENT_LATCHES.MDR & 0x00008) != 0) &&
+                    // not trap
+                    ((CURRENT_LATCHES.IR  & 0x0F000) != 0x0F000)
+                  ){
+                    NEXT_LATCHES.EXCV = Low16bits(4);
+                }
                 break;
-        }
-        int lshf = GetLSHF1(CURRENT_LATCHES.MICROINSTRUCTION);
-        int pcgate = GetGATE_PC(CURRENT_LATCHES.MICROINSTRUCTION);
-
-        NEXT_LATCHES.EXCV = Low16bits(0);
-        if(BUS & 0x01 != 0 &&  lshf == 1){
-            NEXT_LATCHES.EXCV = Low16bits(3);
-        }
-        if(BUS & 0x01 != 0 && pcgate == 1){
-            NEXT_LATCHES.EXCV = Low16bits(3);
-        }
-        // replace if protection also occurs
-        if(((CURRENT_LATCHES.PSR & 0x8000) != 0) && (Low16bits(BUS) < 0x3000)){
-            NEXT_LATCHES.EXCV = Low16bits(2);
-        }
+        }     
    }
    if(ldexc == 1){
         if (NEXT_LATCHES.EXCV != 0){
@@ -1399,8 +1395,5 @@ void latch_datapath_values() {
    if(ldsavemdr == 1){
         NEXT_LATCHES.SAVEMDR = Low16bits(CURRENT_LATCHES.MDR);
    }
-
-
-    // MAKE SURE TO USE NEXT STATE FOR ALL OF THESE !!!!!!!!!!!!!!    
 
 }
