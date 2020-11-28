@@ -14,7 +14,7 @@ JMP R0 ; normal
 ; could write a VERY long program that goes into the next page. would need to be 256+ lines of code.
 
 ; test protection
-TRAP 0x22 ; should halt the machine but no exception during address translation
+.FILL xF022 ; should halt the machine but no exception during address translation
 
 LEA R0, protection
 LDW R1, R0, #0 ; causes exception
@@ -22,7 +22,6 @@ STW R1, R0, #0 ; causes exception
 LDB R1, R0, #0 ; exception
 STB R1, R0, #0 ; exception
 JMP R0 ; causes exception
-
 
 ; test unaligned
 LEA R0, unaligned
@@ -43,8 +42,8 @@ JMP R0 ; causes exception
 
 HALT
 
-unligned .FILL xC015
+unaligned .FILL xC015
 protection .FILL x2020
-normal .FILL xCOOO
+normal .FILL xC000
 
 .END
