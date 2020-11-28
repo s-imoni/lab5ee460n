@@ -1,0 +1,8 @@
+list of tests
+
+-> page fault (LDW, LDB, STW, STB, PC, TRAP, DURING INTERRUPT, RTI ... )
+-> protection (LDW, LDB, STW, STB, PC, TRAP, DURING INTERRUPT, RTI ... )
+-> unused opcde (xA. xB)
+-> unaligned (LDW, LDB, STW, STB, PC ... should only happen during STW, LDW, PC)
+-> check normal for all of the above
+-> check timer interrupt to make sure it clears as intended

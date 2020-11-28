@@ -23,7 +23,7 @@
 .FILL x2A04 ; 21
 .FILL x2C04 ; 22
 .FILL x2E04 ; 23
-.FILL x3208 ; 24 mapped to 25
+.FILL x320C ; 24 mapped to 25
 .FILL x0008
 .FILL x0008
 .FILL x0008
@@ -95,7 +95,7 @@
 .FILL x0008
 .FILL x0008
 .FILL x0008
-.FILL x3808 ; page 96 mapped to 28
+.FILL x380C ; page 96 mapped to 28
 .FILL x0008
 .FILL x0008
 .FILL x0008
@@ -125,6 +125,6 @@
 .FILL x0008
 .FILL x0008
 .FILL x0008
-.FILL x3A08 ; page 126 mapped to 29
+.FILL x3A0C ; page 126 mapped to 29
 .FILL x0008
 .END
