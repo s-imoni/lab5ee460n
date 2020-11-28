@@ -2,6 +2,7 @@
 
 ; test normal
 LEA R0, normal
+LDW R0, R0, #0
 LDW R1, R0, #0 ; normal
 STW R1, R0, #0 ; normal
 LDB R1, R0, #0 ; normal
@@ -17,6 +18,7 @@ JMP R0 ; normal
 .FILL xF022 ; should halt the machine but no exception during address translation
 
 LEA R0, protection
+LDW R0, R0, #0
 LDW R1, R0, #0 ; causes exception
 STW R1, R0, #0 ; causes exception
 LDB R1, R0, #0 ; exception
@@ -25,6 +27,7 @@ JMP R0 ; causes exception
 
 ; test unaligned
 LEA R0, unaligned
+LDW R0, R0, #0
 LDW R1, R0, #0 ; causes exception
 STW R1, R0, #0 ; causes exception
 LDB R1, R0, #0 ; no exception

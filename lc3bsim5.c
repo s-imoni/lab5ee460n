@@ -1304,7 +1304,7 @@ void latch_datapath_values() {
                     ((CURRENT_LATCHES.MDR & 0x00008) == 0) &&
                     // not trap
                     // FIND A BETTER WAY.. WONT WORK FOR STATE 18
-                    ((CURRENT_LATCHES.IR  & 0x0F000) != 0x0F000)
+                    (CURRENT_LATCHES.RET != 28)
                   ){
                     NEXT_LATCHES.EXCV = Low16bits(4);
                 }
