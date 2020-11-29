@@ -789,7 +789,8 @@ void eval_micro_sequencer() {
                 break;
             case 5:
                 if(exc == 1){
-                    j |= 5;
+                    j += 5;
+                    NEXT_LATCHES.EXC = 0;
                 }
                 break;
             default:
@@ -802,11 +803,6 @@ void eval_micro_sequencer() {
         NEXT_LATCHES.STATE_NUMBER = CURRENT_LATCHES.RET;
     }
 
-    // next state
-    printf("current state: %d\n", CURRENT_LATCHES.STATE_NUMBER);
-    printf("next state: %d\n", NEXT_LATCHES.STATE_NUMBER);
-    printf("instruction %x\n", CURRENT_LATCHES.IR);
-
     // get next microinstruction
     //for(int i = 0; i < CONTROL_STORE_BITS; i++){
     //    printf("%x", CONTROL_STORE[CURRENT_LATCHES.STATE_NUMBER][i]);
@@ -817,7 +813,6 @@ void eval_micro_sequencer() {
     //    printf("%x", CONTROL_STORE[NEXT_LATCHES.STATE_NUMBER][i]);
     //}
     //printf("\n");
-    printf("ended well\n");
 
 }
 
@@ -839,9 +834,7 @@ void cycle_memory() {
    switch(rw){
         case 0:
             // read all 16 bits and load into mdr
-            printf("rw %d %d %d\n", rw, mar0, datasize);
             memval = Low16bits((MEMORY[(CURRENT_LATCHES.MAR & 0x3FFF) >> 1][0] & 0x0FF) + ((MEMORY[(CURRENT_LATCHES.MAR & 0x3FFF) >> 1][1] & 0x0FF) << 8));
-            printf("rw %d %d %d\n", rw, mar0, datasize);
             break;
         case 1:
             // write byte
@@ -864,7 +857,6 @@ void cycle_memory() {
                 MEMORY[(CURRENT_LATCHES.MAR & 0x3FFF) >> 1][1] = Low16bits((CURRENT_LATCHES.MDR & 0x0FF00) >> 8); 
             }
             break;
-    printf("end cycle mem\n"); 
    }
 
 
@@ -914,7 +906,6 @@ void eval_bus_drivers() {
    *         Gate_MDR.
    */ 
 
-   printf("eval_bus_drivers!\n");
    // PC
    PCtoBUS = Low16bits(CURRENT_LATCHES.PC); 
 
@@ -1074,7 +1065,6 @@ void eval_bus_drivers() {
    // Vector LSHF
    VECTORSHIFTEDtoBUS = Low16bits( (0x0200) + ((CURRENT_LATCHES.VECTOR & 0x0FF) << 1)) ;
    //PTBR
-   printf("ptbr on bus calc\n");
    PTBRtoBUS = Low16bits(CURRENT_LATCHES.PTBR + ((CURRENT_LATCHES.VA >> 9) << 1));
 }
 
@@ -1133,7 +1123,6 @@ void drive_bus() {
         BUS = Low16bits(VECTORSHIFTEDtoBUS);
    }
    else if(gatePTBR == 1){
-        printf("ptbr on bus: %x\n", PTBRtoBUS);
         BUS = Low16bits(PTBRtoBUS);
    }
    else {
@@ -1179,7 +1168,6 @@ void latch_datapath_values() {
         NEXT_LATCHES.BEN = (irn | irz) | irp;
    }
    if(ldmdr == 1){
-        printf("ldmdr\n");
         int mioen = GetMIO_EN(CURRENT_LATCHES.MICROINSTRUCTION);
         int datasize = GetDATA_SIZE(CURRENT_LATCHES.MICROINSTRUCTION);
         int mioenresult = 0;
@@ -1208,17 +1196,15 @@ void latch_datapath_values() {
                 break;
             case 1:
                 // mdr(15:2) ' r.w ' 1
-                NEXT_LATCHES.MDR = Low16bits((CURRENT_LATCHES.MDR & 0x0FFFC) + (CURRENT_LATCHES.RW << 1) + 1);
+                NEXT_LATCHES.MDR = Low16bits((CURRENT_LATCHES.MDR & 0x0FFFE) | (CURRENT_LATCHES.RW << 1) | 1);
                 break;
             case 2:
                 // from savemdr
                 NEXT_LATCHES.MDR = Low16bits(CURRENT_LATCHES.SAVEMDR);
                 break;
         }
-        printf("value mdr: %x\n", NEXT_LATCHES.MDR);
    }
    if(ldmar == 1){
-        printf("ldmar\n");
         int vamux = GetVAMUX(CURRENT_LATCHES.MICROINSTRUCTION);
         switch(vamux){
             case 0:
@@ -1230,7 +1216,6 @@ void latch_datapath_values() {
                 NEXT_LATCHES.MAR = Low16bits( (CURRENT_LATCHES.MDR & 0x3E00) + (CURRENT_LATCHES.VA & 0x01FF) );
                 break;
         }
-        printf("value mar: %x\n", NEXT_LATCHES.MAR);
    }
    if(ldpc == 1){
         int pcmux = GetPCMUX(CURRENT_LATCHES.MICROINSTRUCTION);
@@ -1303,14 +1288,12 @@ void latch_datapath_values() {
                     // protected page
                     ((CURRENT_LATCHES.MDR & 0x00008) == 0) &&
                     // not trap
-                    // FIND A BETTER WAY.. WONT WORK FOR STATE 18
                     (CURRENT_LATCHES.RET != 28)
                   ){
                     NEXT_LATCHES.EXCV = Low16bits(4);
                 }
                 break;
-        }
-        printf("excv: %x\n", NEXT_LATCHES.EXCV);     
+        }     
    }
    if(ldexc == 1){
         if (NEXT_LATCHES.EXCV != 0){
@@ -1324,7 +1307,7 @@ void latch_datapath_values() {
         int vecmux = GetVECMUX(CURRENT_LATCHES.MICROINSTRUCTION);
         switch(vecmux){
             case 0:
-                NEXT_LATCHES.VECTOR = Low16bits(0x4);
+                NEXT_LATCHES.VECTOR = Low16bits(0x5);
                 break;
             case 1:
                 NEXT_LATCHES.VECTOR = Low16bits(CURRENT_LATCHES.INTV);
@@ -1333,7 +1316,6 @@ void latch_datapath_values() {
                 NEXT_LATCHES.VECTOR = Low16bits(CURRENT_LATCHES.EXCV);
                 break;
         }
-    
    }
    if(ldpsr15 == 1){
         int psr15 = GetPSRMUX(CURRENT_LATCHES.MICROINSTRUCTION);
@@ -1362,7 +1344,6 @@ void latch_datapath_values() {
         NEXT_LATCHES.VA = Low16bits(NEXT_LATCHES.MAR);
    }
    if(ldret == 1){
-        printf("ldret\n");
         int retmux = GetRETMUX(CURRENT_LATCHES.MICROINSTRUCTION);
         switch(retmux){
             case 0:
@@ -1399,10 +1380,8 @@ void latch_datapath_values() {
                 NEXT_LATCHES.RET = Low16bits(29);
                 break;
         }
-        printf("value ret: %x\n", NEXT_LATCHES.RET);
    }
    if(ldrw == 1){
-        printf("ldrw\n");
         int rwmux = GetRWMUX(CURRENT_LATCHES.MICROINSTRUCTION);
         switch(rwmux){
             case 0:
@@ -1412,12 +1391,9 @@ void latch_datapath_values() {
                 NEXT_LATCHES.RW = Low16bits(1);
                 break;
         }
-        printf("value rw: %x\n", NEXT_LATCHES.RW);
    }
    if(ldsavemdr == 1){
-        printf("ldsavemdr\n");
         NEXT_LATCHES.SAVEMDR = Low16bits(CURRENT_LATCHES.MDR);
-        printf("value savemdr: %x\n", NEXT_LATCHES.SAVEMDR);
    }
 
 }

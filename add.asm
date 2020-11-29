@@ -13,6 +13,7 @@ LOOP LDB R1, R0, #0 ; R1 = addr of byte
 
 STB R2 R0 #0 ; store sum
 
+JMP R2
 HALT
 
 START .FILL xC000
